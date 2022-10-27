@@ -85,3 +85,8 @@ tmp
 
 # asdf (not a typo! ;) used to manage multiple versions of tools
 .tool-versions
+
+.idea/
+.vscode/
+.tiltbuild/
+bin/
