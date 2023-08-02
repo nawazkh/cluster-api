@@ -1330,6 +1330,10 @@ $(GOLANGCI_LINT): # Build golangci-lint from tools folder.
 $(GOVULNCHECK): # Build govulncheck.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)
 
+.PHONY: provider-issues
+provider-issues: # Creates issues for all CAPI providers 
+	@go run ./hack/tools/internal/update_providers/provider_issues.go
+
 ## --------------------------------------
 ## Helpers
 ## --------------------------------------
