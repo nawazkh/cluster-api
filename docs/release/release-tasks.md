@@ -388,7 +388,16 @@ We should inform at least the following providers via a new issue on their respe
  - Packet: https://github.com/kubernetes-sigs/cluster-api-provider-packet/issues/new
  - vSphere: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new
 
-TODO: Right now we don't have a template for this message but the Comms Team will provide one later. 
+Use the [provider_issues.go](../../hack/tools/internal/update_providers/provider_issues.go) go utility to create git issues at the provider repositories.
+- Ensure that the above listed providers are matching with the _"providers"_ listed at [provider_issues.go](../../hack/tools/internal/update_providers/provider_issues.go).
+- Ensure that the schedule for the newly released beta release matches with the schedule mentioned in the _"issue body"_ of [provider_issues.go](../../hack/tools/internal/update_providers/provider_issues.go).
+- Update the _"TODOs"_ mentioned in [provider_issues.go](../../hack/tools/internal/update_providers/provider_issues.go).
+- Generate `GITHUB_ISSUE_OPENER_TOKEN` with `repo:status`, `repo_deployment` and `public_repo` access rights.
+- `export PROVIDER_ISSUES_DRY_RUN="true"` and run `make provider-issues` from the root of the repository to run the utility in dry-run mode.
+- `export PROVIDER_ISSUES_DRY_RUN="false"` and run `make provider-issues` to create the issues at the provider repo. The utility will ask for your confirmation before creating the issues in bulk.
+   - Refer to the [provider repos readme](../../hack/tools/internal/update_providers/README.md) for more detailed information.
+
+
 
 ## CI Signal/Bug Triage/Automation Manager
 
