@@ -28,7 +28,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
+	"text/template"
 )
 
 const (
@@ -72,6 +74,16 @@ type IssueResponse struct {
 	HTMLURL string `json:"html_url"`
 }
 
+type releaseDetails struct {
+	ReleaseTag  string
+	BetaTag     string
+	ReleaseLink string
+	ReleaseDate string
+}
+
+// Example command:
+//
+//	GITHUB_ISSUE_OPENER_TOKEN="fake" MINOR_RELEASE="1.6"  RELEASE_DATE="2023-11-28" make provider-issues
 func main() {
 	githubToken, keySet := os.LookupEnv("GITHUB_ISSUE_OPENER_TOKEN")
 	if !keySet || githubToken == "" {
@@ -79,6 +91,8 @@ func main() {
 		fmt.Println("Refer to README.md in folder for more information.")
 		os.Exit(1)
 	}
+
+	details := getReleaseDetails()
 
 	// always start in dry run mode unless explicitly set to false
 	dryRun := true
@@ -97,9 +111,14 @@ func main() {
 	fmt.Println("-", strings.Join(repoList, "\n- "))
 	fmt.Printf("\n")
 
-	issueBody := getIssueBody()
+	b := bytes.NewBuffer([]byte{})
+	if err := getIssueBody().Execute(b, details); err != nil {
+		fmt.Printf(err.Error())
+		os.Exit(1)
+	}
+
 	fmt.Println("Issue body:")
-	fmt.Println(issueBody)
+	fmt.Println(b.String())
 
 	// if dry run, exit
 	if dryRun {
@@ -118,7 +137,7 @@ func main() {
 	for _, repo := range repoList {
 		issue := Issue{
 			Title: issueTitle,
-			Body:  issueBody,
+			Body:  b.String(),
 		}
 
 		issueJSON, err := json.Marshal(issue)
@@ -194,37 +213,61 @@ func continueOrAbort() {
 	}
 }
 
-func getIssueBody() string {
+func getReleaseDetails() releaseDetails {
+	minorRelease, keySet := os.LookupEnv("MINOR_RELEASE")
+	if !keySet || minorRelease == "" {
+		fmt.Println("MINOR_RELEASE is a required environmental variable.")
+		fmt.Println("Refer to README.md in folder for more information.")
+		os.Exit(1)
+	}
+	match, err := regexp.Match("\\d\\.\\d", []byte(minorRelease))
+	if err != nil || !match {
+		fmt.Println("MINOR_RELEASE must be in format `\\d\\.\\d` e.g. 1.5")
+		os.Exit(1)
+	}
+	releaseTag := fmt.Sprintf("v%s%s", minorRelease, ".0")
+	betaTag := fmt.Sprintf("v%s%s", minorRelease, ".0.beta.0")
+	releaseLink := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-%s.md", minorRelease)
+	releaseDate, keySet := os.LookupEnv("RELEASE_DATE")
+	if !keySet || releaseTag == "" {
+		// TODO: Would be a good idea to do some validation / formatting of the date here. e.g. it could be passed in in ISO format, validated and then formated like in the scheduled e.g.`Monday 3rd April 2023`
+		fmt.Println("RELEASE_DATE is a required environmental variable.")
+		fmt.Println("Refer to README.md in folder for more information.")
+		os.Exit(1)
+	}
+
+	return releaseDetails{
+		ReleaseDate: releaseDate,
+		ReleaseTag:  releaseTag,
+		BetaTag:     betaTag,
+		ReleaseLink: releaseLink,
+	}
+}
+func getIssueBody() *template.Template {
 	// do not indent the body
 	// indenting the body will result in the body being posted as a code snippet
-	issueBody := `
-<!-- body -->
-<!-- TODO: remove all TODOs before running this utility -->
-<!-- TODO: update CAPI release semver -->
-CAPI v1.x.0-beta.0 has been released and is ready for testing.
-Looking forward to your feedback before CAPI 1.x.0 release!
+	issueBody, err := template.New("issue").Parse(
+		`
+CAPI {{.BetaTag}} has been released and is ready for testing.
+Looking forward to your feedback before {{.ReleaseTag}} release!
 
 ## For quick reference
 
 <!-- body -->
-<!-- TODO: CAPI release notes -->
-- [CAPI v1.x.0-beta.0 release notes](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.x.0-beta.0)
+- [CAPI {{.BetaTag}} release notes](https://github.com/kubernetes-sigs/cluster-api/releases/tag/{{.BetaTag}})
 - [Shortcut to CAPI git issues](https://github.com/kubernetes-sigs/cluster-api/issues)
 
 ## Following are the planned dates for the upcoming releases
 
-<!-- TODO: update CAPI release timeline -->
-|Release|Expected Date|
-|-----|-----|
-|v1.5.0-beta.x | Tuesday 5th July 2023|
-|release-1.5 branch created (Begin [Code Freeze])|Tuesday 11th July 2023|
-|v1.5.0-rc.0 released|Tuesday 11th July 2023|
-| release-1.5 jobs created | Tuesday 11th July 2023 |
-| v1.5.0-rc.x released | Tuesday 18th July 2023 |
-| v1.5.0 released | Tuesday 25th July 2023 |
+CAPI {{.ReleaseTag}} will be released on {{.ReleaseDate}}.
+
+More details of the upcoming schedule can be seen at {{.ReleaseLink}}
 
 <!-- [List of CAPI providers](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#communicate-beta-to-providers) -->
 <!-- body -->
-`
+`)
+	if err != nil {
+		panic(err)
+	}
 	return issueBody
 }
