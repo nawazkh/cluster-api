@@ -53,7 +53,7 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters using
 	})
 })
 
-var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass with a HA control plane [ClusterClass]", func() {
+var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass with a HA control plane [ClusterClass] [PR-Blocking]", func() {
 	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
 		return SelfHostedSpecInput{
 			E2EConfig:                e2eConfig,
