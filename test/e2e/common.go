@@ -65,6 +65,46 @@ func setupSpecNamespace(ctx context.Context, specName string, clusterProxy frame
 	return namespace, cancelWatches
 }
 
+func dumpNodesAndPods(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace *corev1.Namespace, cancelWatches context.CancelFunc, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, skipCleanup bool) {
+	Byf("Dumping logs from the %q workload cluster", cluster.Name)
+
+	// Dump all the logs from the workload cluster before deleting them.
+	clusterProxy.CollectWorkloadClusterLogs(ctx, cluster.Namespace, cluster.Name, filepath.Join(artifactFolder, "clusters", cluster.Name))
+
+	Byf("Dumping all the Cluster API resources in the %q namespace", namespace.Name)
+
+	// Dump all Cluster API related resources to artifacts before deleting them.
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:    clusterProxy.GetClient(),
+		Namespace: namespace.Name,
+		LogPath:   filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
+	})
+
+	// If the cluster still exists, dump pods and nodes of the workload cluster before deleting the cluster.
+	if err := clusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(cluster), &clusterv1.Cluster{}); err == nil {
+		Byf("Dumping Pods and Nodes of Cluster %s", klog.KObj(cluster))
+		framework.DumpResourcesForCluster(ctx, framework.DumpResourcesForClusterInput{
+			Lister:  clusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name).GetClient(),
+			Cluster: cluster,
+			LogPath: filepath.Join(artifactFolder, "clusters", cluster.Name, "resources"),
+			Resources: []framework.DumpNamespaceAndGVK{
+				{
+					GVK: schema.GroupVersionKind{
+						Version: corev1.SchemeGroupVersion.Version,
+						Kind:    "Pod",
+					},
+				},
+				{
+					GVK: schema.GroupVersionKind{
+						Version: corev1.SchemeGroupVersion.Version,
+						Kind:    "Node",
+					},
+				},
+			},
+		})
+	}
+}
+
 func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace *corev1.Namespace, cancelWatches context.CancelFunc, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, skipCleanup bool) {
 	Byf("Dumping logs from the %q workload cluster", cluster.Name)
 

@@ -389,6 +389,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 	})
 
 	AfterEach(func() {
+		//dumpNodesAndPods(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 		if selfHostedNamespace != nil {
 			// Dump all Cluster API related resources to artifacts before pivoting back.
 			framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
@@ -396,6 +397,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				Namespace: namespace.Name,
 				LogPath:   filepath.Join(input.ArtifactFolder, "clusters", clusterResources.Cluster.Name, "resources"),
 			})
+			dumpNodesAndPods(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 		}
 		if selfHostedCluster != nil {
 			By("Ensure API servers are stable before doing move")
@@ -410,6 +412,8 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				kubeSystem := &corev1.Namespace{}
 				return selfHostedClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 			}, "5s", "100ms").Should(BeNil(), "Failed to assert self-hosted API server stability")
+
+			Expect(true).To(Equal(false)) // Fail on purpose
 
 			By("Moving the cluster back to bootstrap")
 			clusterctl.Move(ctx, clusterctl.MoveInput{
