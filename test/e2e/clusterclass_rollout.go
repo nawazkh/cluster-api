@@ -1258,10 +1258,25 @@ func modifyControlPlaneViaClusterAndWait(ctx context.Context, input modifyContro
 	patchHelper, err := patch.NewHelper(input.Cluster, mgmtClient)
 	Expect(err).ToNot(HaveOccurred())
 	log.Logf("Working until here")
+	testInput := &input
+	if testInput != nil {
+		log.Logf("test input is not nil")
+		if testInput.Cluster != nil {
+			log.Logf("test input cluster is not nil")
+			log.Logf("test input cluster spec is not nil", testInput.Cluster.Spec.ControlPlaneEndpoint)
+			if testInput.Cluster.Spec.Topology != nil {
+				log.Logf("test input cluster spec topology is not nil")
+				for _, labelValues := range testInput.Cluster.Spec.Topology.ControlPlane.Metadata.Labels {
+					log.Logf("labelValues: %v", labelValues)
+				}
+			}
+
+		}
+	}
 	input.ModifyControlPlaneTopology(&input.Cluster.Spec.Topology.ControlPlane)
 	Expect(patchHelper.Patch(ctx, input.Cluster)).To(Succeed())
 	log.Logf("Working until here 2")
-	
+
 	// NOTE: We only wait until the change is rolled out to the control plane object and not to the control plane machines.
 	log.Logf("Waiting for control plane rollout to complete.")
 	Eventually(func(g Gomega) {
