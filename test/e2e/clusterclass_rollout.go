@@ -1257,6 +1257,7 @@ func modifyControlPlaneViaClusterAndWait(ctx context.Context, input modifyContro
 	// Patch the control plane topology in the Cluster.
 	patchHelper, err := patch.NewHelper(input.Cluster, mgmtClient)
 	Expect(err).ToNot(HaveOccurred())
+	log.Logf("Working until here")
 	input.ModifyControlPlaneTopology(&input.Cluster.Spec.Topology.ControlPlane)
 	Expect(patchHelper.Patch(ctx, input.Cluster)).To(Succeed())
 
