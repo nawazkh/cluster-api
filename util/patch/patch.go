@@ -19,6 +19,7 @@ package patch
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -102,11 +103,13 @@ func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 
 // Patch will attempt to patch the given object, including its status.
 func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) error {
+	fmt.Println("in Patch")
 	// Return early if the object is nil.
 	if util.IsNil(obj) {
 		return errors.Errorf("failed to patch %s %s: modified object is nil", h.gvk.Kind, klog.KObj(h.beforeObject))
 	}
 
+	fmt.Println("in Patch", "w1")
 	// Get the GroupVersionKind of the object that we want to patch.
 	gvk, err := apiutil.GVKForObject(obj, h.client.Scheme())
 	if err != nil {
@@ -116,12 +119,14 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 		return errors.Errorf("failed to patch %s %s: unmatched GroupVersionKind, expected %q got %q", h.gvk.Kind, klog.KObj(h.beforeObject), h.gvk, gvk)
 	}
 
+	fmt.Println("in Patch", "w2")
 	// Calculate the options.
 	options := &HelperOptions{}
 	for _, opt := range opts {
 		opt.ApplyToHelper(options)
 	}
 
+	fmt.Println("in Patch", "w3")
 	// If condition field path override have been provided, propagate them to the helper for usage in various places of this func.
 	if len(options.Clusterv1ConditionsFieldPath) > 0 {
 		h.clusterv1ConditionsFieldPath = options.Clusterv1ConditionsFieldPath
@@ -138,12 +143,14 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 		h.metav1ConditionsFieldPath = nil
 	}
 
+	fmt.Println("in Patch", "w4")
 	// Convert the object to unstructured to compare against our before copy.
 	h.after, err = toUnstructured(obj, gvk)
 	if err != nil {
 		return errors.Wrapf(err, "failed to patch %s %s: failed to convert object to Unstructured", h.gvk.Kind, klog.KObj(h.beforeObject))
 	}
 
+	fmt.Println("in Patch", "w5")
 	// Determine if the object has status.
 	if unstructuredHasStatus(h.after) {
 		if options.IncludeStatusObservedGeneration {
@@ -159,6 +166,7 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 		}
 	}
 
+	fmt.Println("in Patch", "w6")
 	// Calculate and store the top-level field changes (e.g. "metadata", "spec", "status") we have before/after.
 	h.changes, err = h.calculateChanges(obj)
 	if err != nil {
@@ -175,6 +183,7 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	if err := h.patchStatusConditions(ctx, obj, options.ForceOverwriteConditions, options.OwnedConditions, options.OwnedV1Beta2Conditions); err != nil {
 		errs = append(errs, err)
 	}
+	fmt.Println("in Patch", "w7")
 	// Then proceed to patch the rest of the object.
 	if err := h.patch(ctx, obj); err != nil {
 		errs = append(errs, err)
@@ -186,6 +195,7 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 		}
 	}
 
+	fmt.Println("in Patch", "w8")
 	if len(errs) > 0 {
 		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to patch %s %s", h.gvk.Kind, klog.KObj(h.beforeObject))
 	}

@@ -155,6 +155,10 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 		machineDeployments := clusterResources.MachineDeployments
 		Expect(machineDeployments[0].Spec.Replicas).To(Equal(ptr.To[int32](1)))
 
+		fmt.Println("Performing custom checks")
+		Expect(cluster).ToNot(BeNil())
+		Expect(controlplane).ToNot(BeNil())
+		Expect(controlplane.Name).ToNot(BeEmpty())
 		// This label will be added to all Machines so we can later create Pods on the right Nodes.
 		nodeOwnerLabelKey := "owner.node.cluster.x-k8s.io"
 

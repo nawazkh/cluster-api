@@ -1260,7 +1260,8 @@ func modifyControlPlaneViaClusterAndWait(ctx context.Context, input modifyContro
 	log.Logf("Working until here")
 	input.ModifyControlPlaneTopology(&input.Cluster.Spec.Topology.ControlPlane)
 	Expect(patchHelper.Patch(ctx, input.Cluster)).To(Succeed())
-
+	log.Logf("Working until here 2")
+	
 	// NOTE: We only wait until the change is rolled out to the control plane object and not to the control plane machines.
 	log.Logf("Waiting for control plane rollout to complete.")
 	Eventually(func(g Gomega) {
